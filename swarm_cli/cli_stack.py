@@ -129,7 +129,7 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
         if cmd:
             sys.exit(run_cmd("docker exec -ti \"{}\" sh -c '{}'".format(docker_container.id, cmd)))
         else:
-            sys.exit(run_cmd("docker exec \"{}\" sh".format(docker_container.id)))
+            sys.exit(run_cmd("docker exec -ti \"{}\" sh".format(docker_container.id)))
     else:
         logger.error('No running container found')
 
