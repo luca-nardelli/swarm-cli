@@ -1,1 +1,7 @@
 click
+verboselogs
+colorama
+docker
+pyyaml
+paramiko
+coloredlogs
