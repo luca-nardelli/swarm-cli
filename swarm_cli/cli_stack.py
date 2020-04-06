@@ -115,9 +115,9 @@ def bpd(ctx: click.Context, dry_run=False):
 
 @stack.command()
 @click.argument('service')
-@click.argument('cmd')
+@click.argument('cmd', required=False)
 @click.pass_context
-def sh(ctx: click.Context, service: str, cmd: str):
+def sh(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
 
