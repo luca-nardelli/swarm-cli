@@ -5,4 +5,4 @@ docker
 pyyaml
 paramiko
 coloredlogs
-dotenv
+python-dotenv

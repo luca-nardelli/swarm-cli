@@ -21,7 +21,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'click', 'docker', 'pyyaml', 'colorama', 'paramiko', 'coloredlogs', 'verboselogs','dotenv'
+        'click', 'docker', 'pyyaml', 'colorama', 'paramiko', 'coloredlogs', 'verboselogs','python-dotenv'
     ],
     entry_points={
         'console_scripts': [
