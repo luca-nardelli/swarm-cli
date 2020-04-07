@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Union
 
 import click
 
@@ -32,15 +33,21 @@ def ls(ctx: click.Context):
 @stack.command()
 @click.pass_context
 @click.argument('service')
-def logs(ctx: click.Context, service: str):
+@click.option('--tail', type=str, default='100')
+def logs(ctx: click.Context, service: str, tail: Union[str, int] = '100'):
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
+
+    try:
+        tail = int(tail)
+    except:
+        pass
 
     client = state.get_docker_client()
     fqsn = state.current_env.get_full_service_name(service)
     docker_container = get_first_running_container_for_service(client, fqsn=fqsn)
     if docker_container:
-        for log in docker_container.logs(follow=True, stream=True):
+        for log in docker_container.logs(follow=True, stream=True, tail=tail):
             decoded: str = log.decode("utf-8")
             decoded = decoded.rstrip()
             click.secho(decoded)
