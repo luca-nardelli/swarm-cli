@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Union
+from typing import Union, List
 
 import click
 
@@ -142,10 +142,13 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
 
 
 @stack.command(name='exec')
+@click.option('-t', is_flag=True)
+@click.option('-i', is_flag=True)
 @click.argument('service')
 @click.argument('cmd')
+@click.argument('other', nargs=-1)
 @click.pass_context
-def execCmd(ctx: click.Context, service: str, cmd: str):
+def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=False, i=False):
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
 
@@ -153,7 +156,13 @@ def execCmd(ctx: click.Context, service: str, cmd: str):
     fqsn = state.current_env.get_full_service_name(service)
     docker_container = get_first_running_container_for_service(client, fqsn=fqsn)
     if docker_container:
+        print(other)
         logger.notice('Attaching to \'{}\''.format(docker_container.id))
-        sys.exit(run_cmd("docker exec -ti \"{}\" \"{}\"".format(docker_container.id, cmd)))
+        flags = []
+        if t:
+            flags.append('-t')
+        if i:
+            flags.append('-i')
+        sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other))))
     else:
         logger.error('No running container found')

@@ -64,7 +64,7 @@ def parse_stack_filename(path: str):
 def run_cmd(cmd: str, dry_run=False, cwd: str = os.getcwd(), env=os.environ) -> int:
     logger.verbose("+ " + cmd)
     if not dry_run:
-        res = subprocess.run(cmd, stderr=sys.stderr, stdout=sys.stdout, cwd=cwd, shell=True, env=env)
+        res = subprocess.run(cmd, stdin=sys.stdin, stderr=sys.stderr, stdout=sys.stdout, cwd=cwd, shell=True, env=env)
         return res.returncode
     return 0
 
