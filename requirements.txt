@@ -6,3 +6,4 @@ pyyaml
 paramiko
 coloredlogs
 python-dotenv
+dpath

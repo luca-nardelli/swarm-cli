@@ -3,6 +3,7 @@ import sys
 from typing import Union, List
 
 import click
+import dpath.util
 
 from swarm_cli.lib import load_env_files, run_cmd
 from swarm_cli.lib.docker_utils import get_first_running_container_for_service
@@ -166,3 +167,19 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
         sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other))))
     else:
         logger.error('No running container found')
+
+
+@stack.command()
+@click.argument('service')
+@click.pass_context
+def info(ctx: click.Context, service: str, cmd: str = None):
+    state: StackModeState = ctx.obj
+    state.current_env.ensure_has_service(service)
+
+    client = state.get_docker_client()
+    fqsn = state.current_env.get_full_service_name(service)
+    service = client.services.get(fqsn)
+    if service:
+        print(dpath.util.values(service.attrs, 'Endpoint/Ports/*'))
+    else:
+        logger.error('No service found')
