@@ -6,7 +6,6 @@ import click
 import dpath.util
 
 from swarm_cli.lib import load_env_files, run_cmd
-from swarm_cli.lib.docker_utils import get_first_running_container_for_service
 from swarm_cli.lib.logging import logger
 from swarm_cli.lib.stack_mode.stack_mode_state import StackModeState
 
@@ -44,9 +43,8 @@ def logs(ctx: click.Context, service: str, tail: Union[str, int] = '100'):
     except:
         pass
 
-    client = state.get_docker_client()
     fqsn = state.current_env.get_full_service_name(service)
-    docker_container = get_first_running_container_for_service(client, fqsn=fqsn)
+    docker_container, client = state.get_first_running_container_for_service(fqsn=fqsn)
     if docker_container:
         for log in docker_container.logs(follow=True, stream=True, tail=tail):
             decoded: str = log.decode("utf-8")
@@ -129,15 +127,16 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
 
-    client = state.get_docker_client()
     fqsn = state.current_env.get_full_service_name(service)
-    docker_container = get_first_running_container_for_service(client, fqsn=fqsn)
+    docker_container, client = state.get_first_running_container_for_service(fqsn=fqsn)
     if docker_container:
         logger.notice('Attaching to \'{}\''.format(docker_container.id))
+        env = os.environ.copy()
+        env['DOCKER_HOST'] = client.docker_host
         if cmd:
-            sys.exit(run_cmd("docker exec -ti \"{}\" sh -c '{}'".format(docker_container.id, cmd)))
+            sys.exit(run_cmd("docker exec -ti \"{}\" sh -c '{}'".format(docker_container.id, cmd), env=env))
         else:
-            sys.exit(run_cmd("docker exec -ti \"{}\" sh".format(docker_container.id)))
+            sys.exit(run_cmd("docker exec -ti \"{}\" sh".format(docker_container.id), env=env))
     else:
         logger.error('No running container found')
 
@@ -153,18 +152,18 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
 
-    client = state.get_docker_client()
     fqsn = state.current_env.get_full_service_name(service)
-    docker_container = get_first_running_container_for_service(client, fqsn=fqsn)
+    docker_container, client = state.get_first_running_container_for_service(fqsn=fqsn)
     if docker_container:
-        print(other)
         logger.notice('Attaching to \'{}\''.format(docker_container.id))
+        env = os.environ.copy()
+        env['DOCKER_HOST'] = client.docker_host
         flags = []
         if t:
             flags.append('-t')
         if i:
             flags.append('-i')
-        sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other))))
+        sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other)),env=env))
     else:
         logger.error('No running container found')
 
@@ -172,7 +171,7 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
 @stack.command()
 @click.argument('service')
 @click.pass_context
-def info(ctx: click.Context, service: str, cmd: str = None):
+def info(ctx: click.Context, service: str):
     state: StackModeState = ctx.obj
     state.current_env.ensure_has_service(service)
 
@@ -181,5 +180,21 @@ def info(ctx: click.Context, service: str, cmd: str = None):
     service = client.services.get(fqsn)
     if service:
         print(dpath.util.values(service.attrs, 'Endpoint/Ports/*'))
+    else:
+        logger.error('No service found')
+
+
+@stack.command()
+@click.argument('service')
+@click.pass_context
+def force_update(ctx: click.Context, service: str, ):
+    state: StackModeState = ctx.obj
+    state.current_env.ensure_has_service(service)
+
+    client = state.get_docker_client()
+    fqsn = state.current_env.get_full_service_name(service)
+    service = client.services.get(fqsn)
+    if service:
+        print(service.force_update())
     else:
         logger.error('No service found')
