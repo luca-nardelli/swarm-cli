@@ -1,8 +1,8 @@
 import os
+import platform
 from typing import Dict
 
 import click
-import docker
 import dpath.util
 from docker import DockerClient
 
@@ -23,20 +23,35 @@ class StackModeState:
     current_env: Environment
 
     client: DockerClient = None
+    clients: Dict = dict()
 
     def _init_client(self):
         self.client = Client.from_env()
+        self.clients[os.environ.get('DOCKER_HOST', None) or platform.node()] = self.client
 
     def get_docker_client(self):
         if not self.client:
             self._init_client()
         return self.client
 
+    def get_client_for_host(self, host: str):
+        if host == platform.node():
+            if platform.node() in self.clients:
+                return self.clients[platform.node()]
+            else:
+                self.clients[platform.node()] = Client(base_url=None)
+                return self.clients[platform.node()]
+        node_conn_string = 'ssh://root@{}'.format(host)
+        if node_conn_string in self.clients:
+            return self.clients[node_conn_string]
+        else:
+            self.clients[platform.node()] = Client(base_url=node_conn_string)
+            return self.clients[platform.node()]
+
     def get_docker_client_for_node(self, node_id: str):
         node = self.client.nodes.get(node_id)
         node_host = dpath.util.get(node.attrs, "Description/Hostname", default=None)
-        client = Client(base_url='ssh://root@{}'.format(node_host))
-        return client
+        return self.get_client_for_host(node_host)
 
     def get_first_running_container_for_service(self, fqsn: str):
         service = self.client.services.get(fqsn)
@@ -55,7 +70,6 @@ class StackModeState:
             logger.warn("Task not running")
             return None
         return client.containers.get(container_id), client
-
 
     def initFromFile(self, path: str):
         self.cfg_data = load_required_yaml(path)

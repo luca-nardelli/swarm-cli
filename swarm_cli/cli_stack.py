@@ -133,6 +133,8 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
         logger.notice('Attaching to \'{}\''.format(docker_container.id))
         env = os.environ.copy()
         env['DOCKER_HOST'] = client.docker_host
+        if 'DOCKER_HOST' in env and env['DOCKER_HOST'] is None:
+            del env['DOCKER_HOST']
         if cmd:
             sys.exit(run_cmd("docker exec -ti \"{}\" sh -c '{}'".format(docker_container.id, cmd), env=env))
         else:
@@ -158,6 +160,8 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
         logger.notice('Attaching to \'{}\''.format(docker_container.id))
         env = os.environ.copy()
         env['DOCKER_HOST'] = client.docker_host
+        if 'DOCKER_HOST' in env and env['DOCKER_HOST'] is None:
+            del env['DOCKER_HOST']
         flags = []
         if t:
             flags.append('-t')
