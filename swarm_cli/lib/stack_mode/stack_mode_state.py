@@ -27,7 +27,7 @@ class StackModeState:
 
     def _init_client(self):
         self.client = Client.from_env()
-        self.clients[os.environ.get('DOCKER_HOST', None) or platform.node()] = self.client
+        self.clients[self.client.docker_host] = self.client
 
     def get_docker_client(self):
         if not self.client:
