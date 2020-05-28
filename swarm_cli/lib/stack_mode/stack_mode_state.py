@@ -34,24 +34,25 @@ class StackModeState:
             self._init_client()
         return self.client
 
-    def get_client_for_host(self, host: str):
+    def get_client_for_host_or_ip(self, host: str, ip: str):
         if host == platform.node():
             if platform.node() in self.clients:
                 return self.clients[platform.node()]
             else:
                 self.clients[platform.node()] = Client(base_url=None)
                 return self.clients[platform.node()]
-        node_conn_string = 'ssh://root@{}'.format(host)
+        node_conn_string = 'ssh://root@{}'.format(ip)
         if node_conn_string in self.clients:
             return self.clients[node_conn_string]
         else:
-            self.clients[platform.node()] = Client(base_url=node_conn_string)
-            return self.clients[platform.node()]
+            self.clients[node_conn_string] = Client(base_url=node_conn_string)
+            return self.clients[node_conn_string]
 
     def get_docker_client_for_node(self, node_id: str):
         node = self.client.nodes.get(node_id)
         node_host = dpath.util.get(node.attrs, "Description/Hostname", default=None)
-        return self.get_client_for_host(node_host)
+        node_ip = dpath.util.get(node.attrs, "Status/Addr", default=None)
+        return self.get_client_for_host_or_ip(node_host, node_ip)
 
     def get_first_running_container_for_service(self, fqsn: str):
         service = self.client.services.get(fqsn)
