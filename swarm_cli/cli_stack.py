@@ -182,6 +182,14 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
     else:
         logger.error('No running container found')
 
+@stack.command(name='ps')
+@click.argument('other', nargs=-1)
+@click.pass_context
+def ps(ctx: click.Context, other: List[str]):
+    state: StackModeState = ctx.obj
+    env = os.environ.copy()
+    sys.exit(run_cmd("docker stack ps {}".format(state.current_env.cfg.stack_name), env=env))
+
 
 @stack.command()
 @click.argument('service')

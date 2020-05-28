@@ -60,7 +60,7 @@ class StackModeState:
         task = tasks[0] if len(tasks) > 0 else None
         if not task:
             logger.warn("No running task found for {}".format(fqsn))
-            return None
+            return None, None
         task_id = task['ID']
         node_id = task['NodeID']
         client = self.get_docker_client_for_node(node_id)
@@ -69,7 +69,7 @@ class StackModeState:
         state = dpath.util.get(task, "Status/State", default=None)
         if state != 'running':
             logger.warn("Task not running")
-            return None
+            return None, None
         return client.containers.get(container_id), client
 
     def initFromFile(self, path: str):
