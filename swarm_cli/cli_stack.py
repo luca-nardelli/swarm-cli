@@ -118,6 +118,17 @@ def bpd(ctx: click.Context, dry_run=False):
     _push(state, dry_run)
     _deploy(state, dry_run)
 
+@stack.command()
+@click.option('--dry-run', is_flag=True)
+@click.pass_context
+def rm(ctx: click.Context, dry_run=False):
+    state: StackModeState = ctx.obj
+    for service_name in sorted(state.current_env.services.keys()):
+        fqsn = state.current_env.get_full_service_name(service_name)
+        service = state.get_docker_client().services.get(fqsn)
+        click.secho("Removing {} - {}".format(fqsn, service.id))
+        service.remove()
+
 
 @stack.command()
 @click.argument('service')
