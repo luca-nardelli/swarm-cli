@@ -52,6 +52,8 @@ class StackModeState:
         node = self.client.nodes.get(node_id)
         node_host = dpath.util.get(node.attrs, "Description/Hostname", default=None)
         node_ip = dpath.util.get(node.attrs, "Status/Addr", default=None)
+        if node_ip == '0.0.0.0':
+            node_ip = dpath.util.get(node.attrs, "ManagerStatus/Addr", default=None).split(":")[0]
         return self.get_client_for_host_or_ip(node_host, node_ip)
 
     def get_first_running_container_for_service(self, fqsn: str):
