@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from typing import Union
@@ -8,6 +9,8 @@ import yaml
 
 from swarm_cli.lib.logging import logger
 
+
+env_var_regex = re.compile('[A-Za-z_0-9]+')
 
 def load_required_yaml(path: str):
     if not os.path.exists(path):
@@ -44,12 +47,14 @@ def load_env_files(files: list, ignore_missing=False):
                 exit(1)
         # Have the shell parse the file for us
         logger.debug("Loading {}".format(filepath))
-        cmd = 'env -i sh -c "set -a && . ./{} && env"'.format(filepath)
+        cmd = 'sh -c "set -a && . ./{} && env"'.format(filepath)
         res = subprocess.run(cmd, cwd=os.getcwd(), shell=True, env=os.environ, capture_output=True)
         for line in res.stdout.decode().splitlines():
             k, v = line.split('=', maxsplit=1)
             # Ignore PWD as it is always there
             if k == 'PWD':
+                continue
+            if not env_var_regex.match(k):
                 continue
             load_env_val(k, v, overwrite_existing=False)
 
