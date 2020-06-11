@@ -208,16 +208,16 @@ def info(ctx: click.Context, service: str):
 
 
 @stack.command()
-@click.argument('service')
+@click.argument('services',nargs=-1)
 @click.pass_context
-def force_update(ctx: click.Context, service: str, ):
+def force_update(ctx: click.Context, services: List[str]):
     state: StackModeState = ctx.obj
-    state.current_env.ensure_has_service(service)
-
-    client = state.get_docker_client()
-    fqsn = state.current_env.get_full_service_name(service)
-    service = client.services.get(fqsn)
-    if service:
-        print(service.force_update())
-    else:
-        logger.error('No service found')
+    for service in services:
+        state.current_env.ensure_has_service(service)
+        client = state.get_docker_client()
+        fqsn = state.current_env.get_full_service_name(service)
+        service = client.services.get(fqsn)
+        if service:
+            print(service.force_update())
+        else:
+            logger.error('No service found {}'.format(service))
