@@ -1,4 +1,5 @@
 import os
+import pprint
 import sys
 from typing import Union, List
 
@@ -118,6 +119,7 @@ def bpd(ctx: click.Context, dry_run=False):
     _push(state, dry_run)
     _deploy(state, dry_run)
 
+
 @stack.command()
 @click.option('--dry-run', is_flag=True)
 @click.pass_context
@@ -178,9 +180,10 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
             flags.append('-t')
         if i:
             flags.append('-i')
-        sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other)),env=env))
+        sys.exit(run_cmd("docker exec {} \"{}\" \"{}\" {}".format(' '.join(flags), docker_container.id, cmd, ' '.join(other)), env=env))
     else:
         logger.error('No running container found')
+
 
 @stack.command(name='ps')
 @click.argument('other', nargs=-1)
@@ -191,24 +194,56 @@ def ps(ctx: click.Context, other: List[str]):
     sys.exit(run_cmd("docker stack ps {}".format(state.current_env.cfg.stack_name), env=env))
 
 
-@stack.command()
-@click.argument('service')
+@stack.command(name='env')
 @click.pass_context
-def info(ctx: click.Context, service: str):
+def env(ctx: click.Context):
     state: StackModeState = ctx.obj
-    state.current_env.ensure_has_service(service)
+    load_env_files([
+        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
+        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
+    ], ignore_missing=True)
+    pprint.pprint(dict(os.environ), width=1)
+
+
+@stack.command(name='run')
+@click.option('--dry-run', is_flag=True)
+@click.argument('cmd', nargs=-1)
+@click.pass_context
+def run(ctx: click.Context, dry_run=False, cmd: List[str] = []):
+    state: StackModeState = ctx.obj
+    load_env_files([
+        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
+        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
+    ], ignore_missing=True)
+    env = os.environ.copy()
+    sys.exit(run_cmd(' '.join(cmd), env=env, dry_run=dry_run))
+
+
+@stack.command()
+@click.argument('services', nargs=-1)
+@click.pass_context
+def ports(ctx: click.Context, services: List[str]):
+    state: StackModeState = ctx.obj
+    if len(services) == 0:
+        services = state.current_env.get_services()
 
     client = state.get_docker_client()
-    fqsn = state.current_env.get_full_service_name(service)
-    service = client.services.get(fqsn)
-    if service:
-        print(dpath.util.values(service.attrs, 'Endpoint/Ports/*'))
-    else:
-        logger.error('No service found')
+    for service in services:
+        state.current_env.ensure_has_service(service)
+        fqsn = state.current_env.get_full_service_name(service)
+        service = client.services.get(fqsn)
+        if service:
+            ports = dpath.util.values(service.attrs, 'Endpoint/Ports/*')
+            if len(ports) > 0:
+                print(fqsn)
+                for port in ports:
+                    print("\t{:>6s}: {:>6s} -> {:6s}".format(str(port['Protocol']), str(port['PublishedPort']), str(port['TargetPort'])))
+        else:
+            logger.error('No service found')
 
 
 @stack.command()
-@click.argument('services',nargs=-1)
+@click.argument('services', nargs=-1)
 @click.pass_context
 def force_update(ctx: click.Context, services: List[str]):
     state: StackModeState = ctx.obj

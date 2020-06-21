@@ -55,5 +55,8 @@ class Environment:
     def has_service(self, service: str):
         return service in self.services
 
+    def get_services(self):
+        return self.services.keys()
+
     def get_full_service_name(self, service: str):
         return "{}_{}".format(self.cfg.stack_name, service)

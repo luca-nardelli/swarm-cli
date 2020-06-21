@@ -22,17 +22,17 @@ class StackModeState:
 
     current_env: Environment
 
-    client: DockerClient = None
+    _client: DockerClient = None
     clients: Dict = dict()
 
     def _init_client(self):
-        self.client = Client.from_env()
-        self.clients[self.client.docker_host] = self.client
+        self._client = Client.from_env()
+        self.clients[self._client.docker_host] = self._client
 
     def get_docker_client(self):
-        if not self.client:
+        if not self._client:
             self._init_client()
-        return self.client
+        return self._client
 
     def get_client_for_host_or_ip(self, host: str, ip: str):
         if host == platform.node():
@@ -49,7 +49,7 @@ class StackModeState:
             return self.clients[node_conn_string]
 
     def get_docker_client_for_node(self, node_id: str):
-        node = self.client.nodes.get(node_id)
+        node = self.get_docker_client().nodes.get(node_id)
         node_host = dpath.util.get(node.attrs, "Description/Hostname", default=None)
         node_ip = dpath.util.get(node.attrs, "Status/Addr", default=None)
         if node_ip == '0.0.0.0':
@@ -57,7 +57,7 @@ class StackModeState:
         return self.get_client_for_host_or_ip(node_host, node_ip)
 
     def get_first_running_container_for_service(self, fqsn: str):
-        service = self.client.services.get(fqsn)
+        service = self.get_docker_client().services.get(fqsn)
         tasks = service.tasks(filters={'name': fqsn, 'desired-state': 'running'})
         task = tasks[0] if len(tasks) > 0 else None
         if not task:
@@ -96,4 +96,3 @@ class StackModeState:
         if self.current_env.cfg.docker_host is not None:
             os.environ['DOCKER_HOST'] = self.current_env.cfg.docker_host
         os.environ['STACK_NAME'] = self.current_env.cfg.stack_name
-        self._init_client()
