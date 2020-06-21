@@ -96,3 +96,4 @@ class StackModeState:
         if self.current_env.cfg.docker_host is not None:
             os.environ['DOCKER_HOST'] = self.current_env.cfg.docker_host
         os.environ['STACK_NAME'] = self.current_env.cfg.stack_name
+        os.environ['STACK_ENV'] = self.env
