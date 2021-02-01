@@ -64,6 +64,16 @@ def _build(state: StackModeState, dry_run=False):
     cmd = 'docker-compose {} build'.format(state.current_env.build_compose_override_list())
     run_cmd(cmd, dry_run=dry_run, env=env)
 
+def _pull(state: StackModeState, dry_run=False):
+    load_env_files([
+        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
+        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
+    ], ignore_missing=True)
+    env = os.environ.copy()
+    if 'DOCKER_HOST' in env:
+        del env['DOCKER_HOST']
+    cmd = 'docker-compose {} pull'.format(state.current_env.build_compose_override_list())
+    run_cmd(cmd, dry_run=dry_run, env=env)
 
 def _push(state: StackModeState, dry_run=False):
     load_env_files([
@@ -93,6 +103,12 @@ def build(ctx: click.Context, dry_run=False):
     state: StackModeState = ctx.obj
     _build(state, dry_run)
 
+@stack.command()
+@click.option('--dry-run', is_flag=True)
+@click.pass_context
+def pull(ctx: click.Context, dry_run=False):
+    state: StackModeState = ctx.obj
+    _pull(state, dry_run)
 
 @stack.command()
 @click.option('--dry-run', is_flag=True)
