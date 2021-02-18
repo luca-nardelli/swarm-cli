@@ -64,6 +64,7 @@ def _build(state: StackModeState, dry_run=False):
     cmd = 'docker-compose {} build'.format(state.current_env.build_compose_override_list())
     run_cmd(cmd, dry_run=dry_run, env=env)
 
+
 def _pull(state: StackModeState, dry_run=False):
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
@@ -74,6 +75,7 @@ def _pull(state: StackModeState, dry_run=False):
         del env['DOCKER_HOST']
     cmd = 'docker-compose {} pull'.format(state.current_env.build_compose_override_list())
     run_cmd(cmd, dry_run=dry_run, env=env)
+
 
 def _push(state: StackModeState, dry_run=False):
     load_env_files([
@@ -103,12 +105,14 @@ def build(ctx: click.Context, dry_run=False):
     state: StackModeState = ctx.obj
     _build(state, dry_run)
 
+
 @stack.command()
 @click.option('--dry-run', is_flag=True)
 @click.pass_context
 def pull(ctx: click.Context, dry_run=False):
     state: StackModeState = ctx.obj
     _pull(state, dry_run)
+
 
 @stack.command()
 @click.option('--dry-run', is_flag=True)
@@ -154,6 +158,17 @@ def rm(ctx: click.Context, dry_run=False):
 @click.pass_context
 def sh(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
+    _launch_shell(state, service, cmd, shell='sh')
+
+@stack.command()
+@click.argument('service')
+@click.argument('cmd', required=False)
+@click.pass_context
+def bash(ctx: click.Context, service: str, cmd: str = None):
+    state: StackModeState = ctx.obj
+    _launch_shell(state, service, cmd, shell='bash')
+
+def _launch_shell(state: StackModeState, service, cmd: str = None, shell: str = 'sh'):
     state.current_env.ensure_has_service(service)
 
     fqsn = state.current_env.get_full_service_name(service)
@@ -165,9 +180,9 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
         if 'DOCKER_HOST' in env and env['DOCKER_HOST'] is None:
             del env['DOCKER_HOST']
         if cmd:
-            sys.exit(run_cmd("docker exec -ti \"{}\" sh -c '{}'".format(docker_container.id, cmd), env=env))
+            sys.exit(run_cmd("docker exec -ti \"{}\" {} -c '{}'".format(docker_container.id, shell, cmd), env=env))
         else:
-            sys.exit(run_cmd("docker exec -ti \"{}\" sh".format(docker_container.id), env=env))
+            sys.exit(run_cmd("docker exec -ti \"{}\" {}".format(docker_container.id, shell), env=env))
     else:
         logger.error('No running container found')
 
