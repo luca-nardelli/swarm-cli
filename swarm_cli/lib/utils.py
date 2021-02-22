@@ -50,13 +50,16 @@ def load_env_files(files: list, ignore_missing=False):
         cmd = 'sh -c "set -a && . ./{} && env"'.format(filepath)
         res = subprocess.run(cmd, cwd=os.getcwd(), shell=True, env=os.environ, capture_output=True)
         for line in res.stdout.decode().splitlines():
-            k, v = line.split('=', maxsplit=1)
-            # Ignore PWD as it is always there
-            if k == 'PWD':
-                continue
-            if not env_var_regex.match(k):
-                continue
-            load_env_val(k, v, overwrite_existing=False)
+            try:
+                k, v = line.split('=', maxsplit=1)
+                # Ignore PWD as it is always there
+                if k == 'PWD':
+                    continue
+                if not env_var_regex.match(k):
+                    continue
+                load_env_val(k, v, overwrite_existing=False)
+            except:
+                pass
 
 
 def parse_stack_filename(path: str):
