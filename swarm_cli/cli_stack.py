@@ -168,6 +168,24 @@ def bash(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
     _launch_shell(state, service, cmd, shell='bash')
 
+@stack.command()
+@click.argument('service')
+@click.pass_context
+def attach(ctx: click.Context, service: str, cmd: str = None):
+    state: StackModeState = ctx.obj
+    state.current_env.ensure_has_service(service)
+    fqsn = state.current_env.get_full_service_name(service)
+    docker_container, client = state.get_first_running_container_for_service(fqsn=fqsn)
+    if docker_container:
+        logger.notice('Attaching to \'{}\''.format(docker_container.id))
+        env = os.environ.copy()
+        env['DOCKER_HOST'] = client.docker_host
+        if 'DOCKER_HOST' in env and env['DOCKER_HOST'] is None:
+            del env['DOCKER_HOST']
+        sys.exit(run_cmd("docker attach \"{}\"".format(docker_container.id), env=env))
+    else:
+        logger.error('No running container found')
+
 def _launch_shell(state: StackModeState, service, cmd: str = None, shell: str = 'sh'):
     state.current_env.ensure_has_service(service)
 
