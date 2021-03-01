@@ -62,7 +62,7 @@ def _build(state: StackModeState, dry_run=False):
     if 'DOCKER_HOST' in env:
         del env['DOCKER_HOST']
     cmd = 'docker-compose {} build'.format(state.current_env.build_compose_override_list())
-    run_cmd(cmd, dry_run=dry_run, env=env)
+    return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _pull(state: StackModeState, dry_run=False):
@@ -74,7 +74,7 @@ def _pull(state: StackModeState, dry_run=False):
     if 'DOCKER_HOST' in env:
         del env['DOCKER_HOST']
     cmd = 'docker-compose {} pull'.format(state.current_env.build_compose_override_list())
-    run_cmd(cmd, dry_run=dry_run, env=env)
+    return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _push(state: StackModeState, dry_run=False):
@@ -86,7 +86,7 @@ def _push(state: StackModeState, dry_run=False):
     if 'DOCKER_HOST' in env:
         del env['DOCKER_HOST']
     cmd = 'docker-compose {} push'.format(state.current_env.build_compose_override_list())
-    run_cmd(cmd, dry_run=dry_run, env=env)
+    return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _deploy(state: StackModeState, dry_run=False):
@@ -95,7 +95,7 @@ def _deploy(state: StackModeState, dry_run=False):
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
     ], ignore_missing=True)
     cmd = 'docker stack deploy {} {} --with-registry-auth'.format(state.current_env.build_stack_override_list(), state.current_env.cfg.stack_name)
-    run_cmd(cmd, dry_run=dry_run)
+    return run_cmd(cmd, dry_run=dry_run)
 
 
 @stack.command()
@@ -135,9 +135,12 @@ def deploy(ctx: click.Context, dry_run=False):
 @click.pass_context
 def bpd(ctx: click.Context, dry_run=False):
     state = ctx.obj
-    _build(state, dry_run)
-    _push(state, dry_run)
-    _deploy(state, dry_run)
+    res = _build(state, dry_run)
+    if res != 0: sys.exit(res)
+    res = _push(state, dry_run)
+    if res != 0: sys.exit(res)
+    res = _deploy(state, dry_run)
+    sys.exit(res)
 
 
 @stack.command()
