@@ -85,14 +85,14 @@ class StackModeState:
         self.cfg_basename = self.cfg_data['basename']
         self.cfg_environments = self.cfg_data['environments']
 
-    def selectEnv(self, env: str):
+    def selectEnv(self, env: str, ignore_prompt = False):
         if env not in self.cfg_environments:
             click.secho('Cannot select environment {}, please check the config file'.format(env), fg='red', bold=True)
             exit(1)
         self.env = env
         self.current_env = Environment(self.env, self.cfg_basename, self.cfg_environments[env])
 
-        if self.current_env.cfg.production:
+        if self.current_env.cfg.production and not ignore_prompt:
             click.confirm('You are going to run on a PRODUCTION swarm. Confirm?', abort=True)
 
         self.current_env.base_path = os.path.join(self.root_path, self.env)
@@ -105,10 +105,12 @@ class StackModeState:
         if self.current_env.cfg.docker_host is not None:
             os.environ['DOCKER_HOST'] = self.current_env.cfg.docker_host
         else:
-            del os.environ['DOCKER_HOST']
+            if 'DOCKER_HOST' in os.environ:
+                del os.environ['DOCKER_HOST']
 
     def use_base_docker_host(self):
         if self.base_docker_host is not None:
             os.environ['DOCKER_HOST'] = self.base_docker_host
         else:
-            del os.environ['DOCKER_HOST']
+            if 'DOCKER_HOST' in os.environ:
+                del os.environ['DOCKER_HOST']

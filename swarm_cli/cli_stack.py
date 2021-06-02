@@ -14,10 +14,11 @@ from swarm_cli.lib.stack_mode.stack_mode_state import StackModeState
 @click.group()
 @click.pass_context
 @click.option('--env', type=str, default='dev')
-def stack(ctx: click.Context, env: str = 'env'):
+@click.option('-y','--yes', is_flag=True, type=bool, default=False)
+def stack(ctx: click.Context, env: str = 'env', yes = False):
     state = StackModeState()
     state.initFromFile('stack-config.yml')
-    state.selectEnv(env)
+    state.selectEnv(env, ignore_prompt=yes)
     ctx.obj = state
     pass
 
