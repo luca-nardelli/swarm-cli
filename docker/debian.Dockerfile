@@ -1,7 +1,7 @@
-FROM python:3.9-alpine as builder
+FROM python:3.9-slim-buster as builder
 
 #Global deps
-RUN apk add --update --no-cache build-base libffi-dev openssl openssl-dev rust cargo
+RUN apt-get update && apt-get install -y binutils
 RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade pyinstaller setuptools
 RUN pip3 install cryptography

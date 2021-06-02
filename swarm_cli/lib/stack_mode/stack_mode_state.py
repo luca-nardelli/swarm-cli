@@ -20,10 +20,15 @@ class StackModeState:
     cfg_environments: Dict[str, Dict]
     root_path: str
 
+    base_docker_host: str = None
     current_env: Environment
 
     _client: DockerClient = None
     clients: Dict = dict()
+
+    def __init__(self):
+        if 'DOCKER_HOST' in os.environ:
+            self.base_docker_host = os.environ['DOCKER_HOST']
 
     def _init_client(self):
         self._client = Client.from_env()
@@ -93,7 +98,17 @@ class StackModeState:
         self.current_env.base_path = os.path.join(self.root_path, self.env)
         self.current_env.stack_base_name = self.cfg_basename
         self.current_env.add_stack_file(os.path.join(self.root_path, self.env, 'docker-compose.yml'))
-        if self.current_env.cfg.docker_host is not None:
-            os.environ['DOCKER_HOST'] = self.current_env.cfg.docker_host
         os.environ['STACK_NAME'] = self.current_env.cfg.stack_name
         os.environ['STACK_ENV'] = self.env
+
+    def use_env_docker_host(self):
+        if self.current_env.cfg.docker_host is not None:
+            os.environ['DOCKER_HOST'] = self.current_env.cfg.docker_host
+        else:
+            del os.environ['DOCKER_HOST']
+
+    def use_base_docker_host(self):
+        if self.base_docker_host is not None:
+            os.environ['DOCKER_HOST'] = self.base_docker_host
+        else:
+            del os.environ['DOCKER_HOST']

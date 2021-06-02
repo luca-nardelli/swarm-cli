@@ -2,3 +2,9 @@ build
 dist
 docker
 *.egg-info
+.gitignore
+*
+!swarm_cli
+!cli.py
+!cli.spec
+!requirements.txt

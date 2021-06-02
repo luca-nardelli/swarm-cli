@@ -26,6 +26,7 @@ def stack(ctx: click.Context, env: str = 'env'):
 @click.pass_context
 def ls(ctx: click.Context):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     click.secho("Available services:")
     for service in sorted(state.current_env.services.keys()):
         click.secho("{}".format(service))
@@ -37,6 +38,7 @@ def ls(ctx: click.Context):
 @click.option('--tail', type=str, default='100')
 def logs(ctx: click.Context, service: str, tail: Union[str, int] = '100'):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     state.current_env.ensure_has_service(service)
 
     try:
@@ -54,42 +56,40 @@ def logs(ctx: click.Context, service: str, tail: Union[str, int] = '100'):
 
 
 def _build(state: StackModeState, dry_run=False):
+    state.use_base_docker_host()
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
     ], ignore_missing=True)
     env = os.environ.copy()
-    if 'DOCKER_HOST' in env:
-        del env['DOCKER_HOST']
     cmd = 'docker-compose {} build'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _pull(state: StackModeState, dry_run=False):
+    state.use_base_docker_host()
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
     ], ignore_missing=True)
     env = os.environ.copy()
-    if 'DOCKER_HOST' in env:
-        del env['DOCKER_HOST']
     cmd = 'docker-compose {} pull'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _push(state: StackModeState, dry_run=False):
+    state.use_base_docker_host()
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
     ], ignore_missing=True)
     env = os.environ.copy()
-    if 'DOCKER_HOST' in env:
-        del env['DOCKER_HOST']
     cmd = 'docker-compose {} push'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
 
 
 def _deploy(state: StackModeState, dry_run=False):
+    state.use_env_docker_host()
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
@@ -148,6 +148,7 @@ def bpd(ctx: click.Context, dry_run=False):
 @click.pass_context
 def rm(ctx: click.Context, dry_run=False):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     for service_name in sorted(state.current_env.services.keys()):
         fqsn = state.current_env.get_full_service_name(service_name)
         service = state.get_docker_client().services.get(fqsn)
@@ -161,6 +162,7 @@ def rm(ctx: click.Context, dry_run=False):
 @click.pass_context
 def sh(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     _launch_shell(state, service, cmd, shell='sh')
 
 @stack.command()
@@ -169,6 +171,7 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
 @click.pass_context
 def bash(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     _launch_shell(state, service, cmd, shell='bash')
 
 @stack.command()
@@ -176,6 +179,7 @@ def bash(ctx: click.Context, service: str, cmd: str = None):
 @click.pass_context
 def attach(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     state.current_env.ensure_has_service(service)
     fqsn = state.current_env.get_full_service_name(service)
     docker_container, client = state.get_first_running_container_for_service(fqsn=fqsn)
@@ -242,6 +246,7 @@ def execCmd(ctx: click.Context, service: str, cmd: str, other: List[str], t=Fals
 @click.pass_context
 def ps(ctx: click.Context, other: List[str]):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     env = os.environ.copy()
     sys.exit(run_cmd("docker stack ps {}".format(state.current_env.cfg.stack_name), env=env))
 
@@ -263,6 +268,7 @@ def env(ctx: click.Context):
 @click.pass_context
 def run(ctx: click.Context, dry_run=False, cmd: List[str] = []):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     load_env_files([
         os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
         os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
@@ -276,6 +282,7 @@ def run(ctx: click.Context, dry_run=False, cmd: List[str] = []):
 @click.pass_context
 def ports(ctx: click.Context, services: List[str]):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     if len(services) == 0:
         services = state.current_env.get_services()
 
@@ -299,6 +306,7 @@ def ports(ctx: click.Context, services: List[str]):
 @click.pass_context
 def force_update(ctx: click.Context, services: List[str]):
     state: StackModeState = ctx.obj
+    state.use_env_docker_host()
     for service in services:
         state.current_env.ensure_has_service(service)
         client = state.get_docker_client()
