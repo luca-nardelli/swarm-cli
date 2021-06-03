@@ -16,4 +16,6 @@ class Client(DockerClient):
             base_url = base_url.replace(host, ip)
             logger.verbose('Retrieved ip, new base_url {}'.format(base_url))
         self.docker_host = base_url
+        kwargs['timeout'] = kwargs.get('timeout', 5)
+        kwargs['version'] = kwargs.get('version', 'auto')
         super().__init__(*args, base_url=base_url, **kwargs)
