@@ -16,6 +16,7 @@ class Environment:
     class Config:
         stack_name: str
         docker_host: str
+        docker_user: str = 'root'
         env_file: str = 'env'
         secrets_file: str = 'secrets'
         production = False
@@ -27,6 +28,7 @@ class Environment:
         self.stack_base_name = stack_base_name
         self.cfg.stack_name = configuration.get('stack_name', None) or '{}-{}'.format(self.stack_base_name, self.name)
         self.cfg.docker_host = configuration.get('docker_host', None)
+        self.cfg.docker_user = configuration.get('docker_user', 'root')
         self.cfg.production = parse_yaml_bool(configuration.get('production', False)) or self.name in ['prod', 'production']
 
     def add_stack_file(self, stack_file: str):

@@ -46,7 +46,7 @@ class StackModeState:
             else:
                 self.clients[platform.node()] = Client(base_url=None)
                 return self.clients[platform.node()]
-        node_conn_string = 'ssh://root@{}'.format(ip)
+        node_conn_string = 'ssh://{}@{}'.format(self.current_env.cfg.docker_user,ip)
         if node_conn_string in self.clients:
             return self.clients[node_conn_string]
         else:
