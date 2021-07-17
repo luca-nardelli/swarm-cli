@@ -1,7 +1,7 @@
 FROM python:3.9-alpine as builder
 
 #Global deps
-RUN apk add --update --no-cache build-base libffi-dev openssl openssl-dev rust cargo
+RUN apk add --update --no-cache build-base libffi-dev openssl openssl-dev rust cargo zlib zlib-dev
 RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade pyinstaller setuptools
 RUN pip3 install cryptography
