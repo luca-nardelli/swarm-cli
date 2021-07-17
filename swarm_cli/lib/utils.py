@@ -69,10 +69,10 @@ def parse_stack_filename(path: str):
     # return {'stack_name': parts[0], 'stack_variant': parts[1]}
 
 
-def run_cmd(cmd: str, dry_run=False, cwd: str = os.getcwd(), env=os.environ) -> int:
+def run_cmd(cmd: str, dry_run=False, cwd: str = os.getcwd(), env=os.environ, check: bool = True) -> int:
     logger.verbose("+ " + cmd)
     if not dry_run:
-        res = subprocess.run(cmd, stdin=sys.stdin, stderr=sys.stderr, stdout=sys.stdout, cwd=cwd, shell=True, env=env)
+        res = subprocess.run(cmd, stdin=sys.stdin, stderr=sys.stderr, stdout=sys.stdout, cwd=cwd, shell=True, env=env, check=check)
         return res.returncode
     return 0
 
