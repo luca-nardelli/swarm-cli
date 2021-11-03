@@ -15,7 +15,7 @@ from ...client import Client
 class StackModeState:
     env: str
 
-    cfg_data: dict
+    cfg_stack_config: dict
     cfg_basename: str
     cfg_environments: Dict[str, Dict]
     root_path: str
@@ -80,24 +80,21 @@ class StackModeState:
         return client.containers.get(container_id), client
 
     def initFromFile(self, path: str):
-        self.cfg_data = load_required_yaml(path)
+        self.cfg_stack_config = load_required_yaml(path)
         self.root_path = os.path.dirname(path)
-        self.cfg_basename = self.cfg_data['basename']
-        self.cfg_environments = self.cfg_data['environments']
+        self.cfg_basename = self.cfg_stack_config['basename']
+        self.cfg_environments = self.cfg_stack_config['environments']
 
     def selectEnv(self, env: str, ignore_prompt = False):
         if env not in self.cfg_environments:
             click.secho('Cannot select environment {}, please check the config file'.format(env), fg='red', bold=True)
             exit(1)
         self.env = env
-        self.current_env = Environment(self.env, self.cfg_basename, self.cfg_environments[env])
+        self.current_env = Environment(self.root_path, self.env, self.cfg_stack_config)
 
         if self.current_env.cfg.production and not ignore_prompt:
             click.confirm('You are going to run on a PRODUCTION swarm. Confirm?', abort=True)
 
-        self.current_env.base_path = os.path.join(self.root_path, self.env)
-        self.current_env.stack_base_name = self.cfg_basename
-        self.current_env.add_stack_file(os.path.join(self.root_path, self.env, 'docker-compose.yml'))
         os.environ['STACK_NAME'] = self.current_env.cfg.stack_name
         os.environ['STACK_ENV'] = self.env
 

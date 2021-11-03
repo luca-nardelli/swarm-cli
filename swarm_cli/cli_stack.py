@@ -14,8 +14,8 @@ from swarm_cli.lib.stack_mode.stack_mode_state import StackModeState
 @click.group()
 @click.pass_context
 @click.option('--env', type=str, default='dev')
-@click.option('-y','--yes', is_flag=True, type=bool, default=False)
-def stack(ctx: click.Context, env: str = 'env', yes = False):
+@click.option('-y', '--yes', is_flag=True, type=bool, default=False)
+def stack(ctx: click.Context, env: str = 'env', yes=False):
     state = StackModeState()
     state.initFromFile('stack-config.yml')
     state.selectEnv(env, ignore_prompt=yes)
@@ -58,10 +58,7 @@ def logs(ctx: click.Context, service: str, tail: Union[str, int] = '100'):
 
 def _build(state: StackModeState, dry_run=False):
     state.use_base_docker_host()
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
     env = os.environ.copy()
     cmd = 'docker-compose {} build'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
@@ -69,10 +66,7 @@ def _build(state: StackModeState, dry_run=False):
 
 def _pull(state: StackModeState, dry_run=False):
     state.use_base_docker_host()
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
     env = os.environ.copy()
     cmd = 'docker-compose {} pull'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
@@ -80,10 +74,7 @@ def _pull(state: StackModeState, dry_run=False):
 
 def _push(state: StackModeState, dry_run=False):
     state.use_base_docker_host()
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
     env = os.environ.copy()
     cmd = 'docker-compose {} push'.format(state.current_env.build_compose_override_list())
     return run_cmd(cmd, dry_run=dry_run, env=env)
@@ -91,11 +82,9 @@ def _push(state: StackModeState, dry_run=False):
 
 def _deploy(state: StackModeState, dry_run=False):
     state.use_env_docker_host()
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
-    cmd = 'docker stack deploy {} {} --with-registry-auth'.format(state.current_env.build_stack_override_list(), state.current_env.cfg.stack_name)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
+    cmd = 'docker stack deploy {} {} --with-registry-auth'.format(state.current_env.build_stack_override_list(),
+                                                                  state.current_env.cfg.stack_name)
     return run_cmd(cmd, dry_run=dry_run)
 
 
@@ -105,6 +94,17 @@ def _deploy(state: StackModeState, dry_run=False):
 def build(ctx: click.Context, dry_run=False):
     state: StackModeState = ctx.obj
     _build(state, dry_run)
+
+
+@stack.command()
+@click.pass_context
+def config(ctx: click.Context):
+    state: StackModeState = ctx.obj
+    state.use_base_docker_host()
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
+    env = os.environ.copy()
+    cmd = 'docker-compose {} config'.format(state.current_env.build_compose_override_list())
+    return run_cmd(cmd, env=env)
 
 
 @stack.command()
@@ -166,6 +166,7 @@ def sh(ctx: click.Context, service: str, cmd: str = None):
     state.use_env_docker_host()
     _launch_shell(state, service, cmd, shell='sh')
 
+
 @stack.command()
 @click.argument('service')
 @click.argument('cmd', required=False)
@@ -174,6 +175,7 @@ def bash(ctx: click.Context, service: str, cmd: str = None):
     state: StackModeState = ctx.obj
     state.use_env_docker_host()
     _launch_shell(state, service, cmd, shell='bash')
+
 
 @stack.command()
 @click.argument('service')
@@ -193,6 +195,7 @@ def attach(ctx: click.Context, service: str, cmd: str = None):
         sys.exit(run_cmd("docker attach \"{}\"".format(docker_container.id), env=env))
     else:
         logger.error('No running container found')
+
 
 def _launch_shell(state: StackModeState, service, cmd: str = None, shell: str = 'sh'):
     state.current_env.ensure_has_service(service)
@@ -256,10 +259,7 @@ def ps(ctx: click.Context, other: List[str]):
 @click.pass_context
 def env(ctx: click.Context):
     state: StackModeState = ctx.obj
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
     pprint.pprint(dict(os.environ), width=1)
 
 
@@ -270,10 +270,7 @@ def env(ctx: click.Context):
 def run(ctx: click.Context, dry_run=False, cmd: List[str] = []):
     state: StackModeState = ctx.obj
     state.use_env_docker_host()
-    load_env_files([
-        os.path.join(state.current_env.base_path, state.current_env.cfg.secrets_file),
-        os.path.join(state.current_env.base_path, state.current_env.cfg.env_file),
-    ], ignore_missing=True)
+    load_env_files(state.current_env.get_env_files_list(), ignore_missing=True)
     env = os.environ.copy()
     sys.exit(run_cmd(' '.join(cmd), env=env, dry_run=dry_run))
 
