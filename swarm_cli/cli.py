@@ -38,6 +38,10 @@ def printenv():
     res = subprocess.run('printenv | sort', stderr=sys.stderr, stdout=sys.stdout, cwd=os.getcwd(), shell=True)
 
 
+@root.command()
+def version():
+    print('2021-11-05')
+
 root.add_command(swarm)
 root.add_command(cli_stack.stack)
 
